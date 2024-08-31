@@ -1,62 +1,74 @@
 import fiftyone as fo
 import fiftyone.zoo as foz
-import cv2
+import fiftyone.utils.image as foui
 import os
+from PIL import Image
+import numpy as np
 
+# Define the save directory
+save_dir = os.path.dirname(os.path.abspath(__file__))  # Directory of the current script
+dataset_dir = os.path.join(save_dir, "dataset")  # Folder to save the dataset
 
-# Load the COCO dataset
+# Create dataset directory is does not exists
+os.makedirs(dataset_dir, exist_ok=True)
+
+# Load a small sample of the dataset to inspect
 dataset = foz.load_zoo_dataset(
     "coco-2017",
     split="train",
-    label_types=["detections"],
-    classes=["person"],
-    max_samples=50,
+    label_types=["detections"],  # Ensure you're using the correct label type
+    max_samples=500  # Load a small number of samples for inspection
 )
 
-session = fo.launch_app(dataset, port=5151)
+# Print the available fields in the dataset
+print("Dataset fields:", dataset.get_field_schema())
 
+# Print the available classes and label types
+print("Available classes:", dataset.default_classes)
+
+# Count labels in the original dataset
 try:
-    session.wait()  # This will keep the session open
-except KeyboardInterrupt:
-    print("Session interrupted. Closing...")
-    session.close()  # Close the session gracefully
+    label_counts = dataset.count_values("ground_truth.detections.label")
+    print("Original dataset label counts:", label_counts)
+except ValueError as e:
+    print("Error counting labels:", e)
 
-print(dataset.default_classes)
+# Split the dataset into training and testing sets
+train_dataset = dataset.take(400)  # 80% of 500 samples
+test_dataset = dataset.exclude([s.id for s in train_dataset])  # Remaining 20%
 
-# # Print out the labels of the first few samples to verify
-# for sample in dataset.take(5):
-#     print(sample.ground_truth.detections)
+# Perform necessary preprocessing steps
+def preprocess_sample(sample):
+    # Load image
+    img = Image.open(sample["filepath"])
+    # Resize image
+    img = img.resize((320, 320))
+    # Normalize pixel values
+    img = np.array(img) / 255.0
+    # Save the processed image back to the same path
+    img = Image.fromarray((img * 255).astype(np.uint8))
+    img.save(sample["filepath"])
+    return sample
 
+# Apply preprocessing to each sample in the training and testing views
+for sample in train_dataset:
+    preprocess_sample(sample)
+for sample in test_dataset:
+    preprocess_sample(sample)
 
-print(fo.list_datasets())
-for dataset_name in fo.list_datasets():
-    fo.delete_dataset(dataset_name)
-print(fo.list_datasets())
+# Save the processed datasets
+train_dataset.save()
+test_dataset.save()
 
+# Print the number of samples in each split
+print("Number of training samples:", len(train_dataset))
+print("Number of testing samples:", len(test_dataset))
 
-# # Filter the dataset to include only images containing people
-# dataset = dataset.filter_labels("detections", fo.ViewField("label") == "person")
+# Export the datasets to a format suitable for HIMAX training
+train_export_dir = os.path.join(dataset_dir, "train_export")
+test_export_dir = os.path.join(dataset_dir, "test_export")
 
-# # Himax WE-I image dimensions
-# target_width = 320
-# target_height = 320
+train_dataset.export(export_dir=train_export_dir, dataset_type=fo.types.COCODetectionDataset, label_field="ground_truth")
+test_dataset.export(export_dir=test_export_dir, dataset_type=fo.types.COCODetectionDataset, label_field="ground_truth")
 
-# # Output directory
-# output_dir = "/"
-# os.makedirs(output_dir, exist_ok=True)
-
-# # Process each sample
-# for sample in dataset:
-#     img = cv2.imread(sample.filepath)
-#     if img is None:
-#         continue
-    
-#     # Resize and rescale image
-#     resized_img = cv2.resize(img, (target_width, target_height))
-#     rescaled_img = resized_img / 255.0  # Normalize to [0, 1]
-    
-#     # Save processed image
-#     output_path = os.path.join(output_dir, os.path.basename(sample.filepath))
-#     cv2.imwrite(output_path, (rescaled_img * 255).astype('uint8'))
-
-# print("Processing complete.")
+print("Training and testing datasets exported successfully.")
