@@ -26,6 +26,9 @@ print("Dataset fields:", dataset.get_field_schema())
 # Print the available classes and label types
 print("Available classes:", dataset.default_classes)
 
+# Debugging: Print a sample to inspect its structure
+print("Sample structure:", dataset.first())
+
 # Count labels in the original dataset
 try:
     label_counts = dataset.count_values("ground_truth.detections.label")
@@ -33,9 +36,46 @@ try:
 except ValueError as e:
     print("Error counting labels:", e)
 
+# Filter positive samples (with "person" class)
+positive_samples = []
+for sample in dataset:
+    if sample.ground_truth is not None and sample.ground_truth.detections:
+        if any(d.label == "person" for d in sample.ground_truth.detections):
+            positive_samples.append(sample)
+
+# Filter negative samples (without "person" class)
+negative_samples = []
+for sample in dataset:
+    if sample.ground_truth is not None and sample.ground_truth.detections:
+        if all(d.label != "person" for d in sample.ground_truth.detections):
+            negative_samples.append(sample)
+
+# Remove other labels from positive samples
+for sample in positive_samples:
+    sample["ground_truth"].detections = [d for d in sample["ground_truth"].detections if d.label == "person"]
+
+# Ensure negative samples have no labels
+for sample in negative_samples:
+    sample["ground_truth"].detections = []
+
+# Combine positive and negative samples
+combined_samples = positive_samples + negative_samples
+
+# Create a new dataset with combined samples
+combined_dataset = fo.Dataset()
+for sample in combined_samples:
+    combined_dataset.add_sample(sample)
+
+# Count labels in the newly labelled dataset
+try:
+    label_counts = combined_dataset.count_values("ground_truth.detections.label")
+    print("Newly labelled dataset label counts:", label_counts)
+except ValueError as e:
+    print("Error counting labels:", e)
+
 # Split the dataset into training and testing sets
-train_dataset = dataset.take(400)  # 80% of 500 samples
-test_dataset = dataset.exclude([s.id for s in train_dataset])  # Remaining 20%
+train_dataset = combined_dataset.take(400)  # 80% of 500 samples
+test_dataset = combined_dataset.exclude([s.id for s in train_dataset])  # Remaining 20%
 
 # Perform necessary preprocessing steps
 def preprocess_sample(sample):
