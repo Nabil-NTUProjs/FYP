@@ -1,0 +1,6 @@
+classes=1
+train=train_himax.txt
+valid=val_himax.txt
+names=person.names
+backup = model
+eval=coco
