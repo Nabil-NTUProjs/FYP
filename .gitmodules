@@ -1,3 +1,6 @@
 [submodule "model_YOLOFastest/WE_I_Plus_User_Examples"]
 	path = model_YOLOFastest/WE_I_Plus_User_Examples
 	url = https://github.com/HimaxWiseEyePlus/WE_I_Plus_User_Examples
+[submodule "model_YOLOFastest/Yolo-Fastest"]
+	path = model_YOLOFastest/Yolo-Fastest
+	url = https://github.com/HimaxWiseEyePlus/Yolo-Fastest
