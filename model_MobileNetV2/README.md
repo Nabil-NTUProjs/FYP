@@ -1,15 +1,6 @@
-# FYP
+#MobileNetV2
 
-Current Plan:
-1. get a hello world running in the system
-2. live view of the camera
-3. object detection
+This folder is the training for MobileNetV2
 
-ubuntu platform(abit hard)\
-install make g++ curl\
-install edge impulse\
-install arc gnu\
-install minicom\
+Train 1, Train 2 and Train 3 are the training for Mobilenetv2 with different parameters
 
-
-Btw i dont think u guys can commit to main just create your own branch then we can see from there
