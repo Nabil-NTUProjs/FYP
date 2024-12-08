@@ -17,3 +17,8 @@ the files here are just scripts I use to help me along the way
 ## Debug
 
 THe files here are where the main training happen. Use for future examples if needed
+
+example command to run code
+```
+darknet.exe detector train person.data yolo-fastest-1.1_160_person\yolo-fastest-1.1_160_person.cfg yolo-fastest-1.1_160_person\yolo-fastest-1_1_160_person_himax.weights -clear
+```
